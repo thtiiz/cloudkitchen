@@ -19,13 +19,15 @@ chef2_oled = SSD1306_I2C(128,64,i2c_2)
 Chefs = [
     {},
     {
-        'food_remain': 5,
+        'food_remain': 2,
         'queue': [],
+        'out_order_queue': [],
         'current_queue': 0
     },
     {
-        'food_remain': 4,
+        'food_remain': 20,
         'queue': [],
+        'out_order_queue': [],
         'current_queue': 0
     }
 ]
@@ -41,7 +43,7 @@ def init_wifi():
     espnow.add_peer(BROADCAST)
 
 def update_oled(chef_num):
-    msg =  ",".join([str(q) for q in Chefs[chef_num]['queue']])
+    msg =  ",".join([str(q) for q in Chefs[chef_num]['queue'] + Chefs[chef_num]['out_order_queue']])
     if(chef_num == 1):
         chef1_oled.fill(0)
         chef1_oled.text('Chef 1: Hello!!',0,0)
@@ -56,6 +58,7 @@ def update_oled(chef_num):
         chef2_oled.show()
 
 def serve_from_chef1(timer):
+    global Chefs
     table_num = Chefs[1]['queue'].pop(0)
     Chefs[1]['current_queue'] -= 1
     update_oled(1)
@@ -63,6 +66,7 @@ def serve_from_chef1(timer):
     send_serve_msg(1, table_num)
 
 def serve_from_chef2(timer):
+    global Chefs
     table_num = Chefs[2]['queue'].pop(0)
     Chefs[2]['current_queue'] -= 1
     update_oled(2)
@@ -71,11 +75,15 @@ def serve_from_chef2(timer):
 
 def refill_food_chef1(timer):
     update_oled(1)
-    Chefs[1]['food_remain'] = 5
+    Chefs[1]['food_remain'] = 20 - len(Chefs[1]['out_order_queue'])
+    Chefs[1]['queue'] += Chefs[1]['out_order_queue']
+    Chefs[1]['out_order_queue'] = []
 
 def refill_food_chef2(timer):
     update_oled(2)
-    Chefs[2]['food_remain'] = 4
+    Chefs[2]['food_remain'] = 20 - len(Chefs[2]['out_order_queue'])
+    Chefs[2]['queue'] += Chefs[2]['out_order_queue']
+    Chefs[2]['out_order_queue'] = []
 
 def send_serve_msg(chef_num, table_num):
     msg = {'table_num': table_num, 'chef_num': chef_num}
@@ -105,9 +113,10 @@ def onOrder(*order):
     detail = json.loads(order_detail)
     chef_num = detail['chef_num']
     table_num = detail['table_num']
-
+    
     if(Chefs[chef_num]['food_remain'] > 0):
         Chefs[chef_num]['food_remain'] -= 1 # ลดอาหาร
+        Chefs[chef_num]['queue'].append(table_num) # เพ่ิ่มเข้า queue
         
         # refill food
         if(Chefs[chef_num]['food_remain'] == 0): 
@@ -117,13 +126,13 @@ def onOrder(*order):
             else:
                 tim = Timer(3)
                 tim.init(period=TIME_REFILL, mode=Timer.ONE_SHOT, callback=refill_food_chef2)
-
-        Chefs[chef_num]['queue'].append(table_num) # เพ่ิ่มเข้า queue
-        update_oled(chef_num)
         if(Chefs[chef_num]['current_queue'] == 0): # ถ้าเชฟว่างก็ให้ทำอาหาร
             handleQueue(chef_num)
     else:
-        pass
+        Chefs[chef_num]['out_order_queue'].append(table_num)
+        print('out of order')
+        # pass
+    update_oled(chef_num)
     
 if(__name__ == "__main__"):
     update_oled(1)
