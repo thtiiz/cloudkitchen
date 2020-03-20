@@ -43,18 +43,23 @@ def init_wifi():
     espnow.add_peer(BROADCAST)
 
 def update_oled(chef_num):
-    msg =  ",".join([str(q) for q in Chefs[chef_num]['queue'] + Chefs[chef_num]['out_order_queue']])
+    global Chefs
+    queue = Chefs[chef_num]['queue'] + Chefs[chef_num]['out_order_queue']
+    queue_1 =  ",".join([str(q) for q in queue[:5]])
+    queue_2 =  ",".join([str(q) for q in queue[5:]])
     if(chef_num == 1):
         chef1_oled.fill(0)
         chef1_oled.text('Chef 1: Hello!!',0,0)
-        chef1_oled.text('food remain: {}'.format(Chefs[1]['food_remain']),0,20)
-        chef1_oled.text('queue: {}'.format(msg),0,40)
+        chef1_oled.text('food remain: {}'.format(Chefs[1]['food_remain']),0,15)
+        chef1_oled.text('queue: {}'.format(queue_1),0,30)
+        chef1_oled.text(queue_2,0,45)
         chef1_oled.show()
     else:
         chef2_oled.fill(0)
         chef2_oled.text('Chef 2: Hello!!',0,0)
-        chef2_oled.text('food remain: {}'.format(Chefs[2]['food_remain']),0,20)
-        chef2_oled.text('queue: {}'.format(msg),0,40)
+        chef2_oled.text('food remain: {}'.format(Chefs[2]['food_remain']),0,15)
+        chef2_oled.text('queue: {}'.format(queue_1),0,30)
+        chef2_oled.text(queue_2,0,45)
         chef2_oled.show()
 
 def serve_from_chef1(timer):
