@@ -13,7 +13,7 @@ BUTTON_C_PIN = const(12)
 i2c_1 = I2C(scl=Pin(22), sda=Pin(21), freq=100000)
 customer_oled = SSD1306_I2C(128, 64, i2c_1)
 is_served = True
-TABLE_NUM = 1
+TABLE_NUM = 2
 COUNT = 0
 PRICE = 0
 ORDER = {}
@@ -32,14 +32,6 @@ espnow.init()
 espnow.add_peer(BROADCAST)
 
 # espnow-rx
-
-w = network.WLAN()
-w.active(True)
-
-# BROADCAST = b'\x30'+b'\xAE'+b'\xA4'+b'\x12'+b'\x64'+b'\xE0' #AEA41264E0
-BROADCAST = b'\xFF'*6
-espnow.init()
-espnow.add_peer(BROADCAST)
 
 
 class Button:
@@ -102,7 +94,7 @@ def button_a_callback(pin):
     global STATE
     if(STATE == 'ORDER'):
         order = {}
-        order['table_num'] = 1
+        order['table_num'] = TABLE_NUM
         order['chef_num'] = 1
         print("order1")
         msg = json.dumps(order)
@@ -122,7 +114,7 @@ def button_b_callback(pin):
     global STATE
     if(STATE == 'ORDER'):
         order = {}
-        order['table_num'] = 1
+        order['table_num'] = TABLE_NUM
         order['chef_num'] = 2
         print("order2")
         msg = json.dumps(order)
