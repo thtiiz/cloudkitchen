@@ -1,16 +1,24 @@
-from machine import Pin
+from machine import Pin, I2C
 import time
 import network
 from esp import espnow
+from ssd1306 import SSD1306_I2C
 import json
 
 # init PIN
 led = Pin(16, Pin.OUT)
 BUTTON_A_PIN = const(17)
 BUTTON_B_PIN = const(5)
+BUTTON_C_PIN = const(12)
+i2c_1 = I2C(scl=Pin(22), sda=Pin(21), freq=100000)
+customer_oled = SSD1306_I2C(128, 64, i2c_1)
 is_served = True
 TABLE_NUM = 1
 COUNT = 0
+PRICE = 0
+ORDER = {}
+ORDER[1] = 0
+ORDER[2] = 0
 
 # init WIFI
 w = network.WLAN()
@@ -70,9 +78,12 @@ def button_a_callback(pin):
     print("Sending:", msg)
     espnow.send(BROADCAST, msg)
     global is_served
-    is_served = False
     global COUNT
+    global PRICE
+    global ORDER
+    ORDER[1] += 1
     COUNT += 1
+    is_served = False
     toggleLED()
 
 
@@ -85,10 +96,30 @@ def button_b_callback(pin):
     print("Sending:", msg)
     espnow.send(BROADCAST, msg)
     global is_served
-    is_served = False
     global COUNT
+    global PRICE
+    global ORDER
+    ORDER[2] += 1
     COUNT += 1
+    is_served = False
     toggleLED()
+
+
+def button_c_callback(pin):
+    global PRICE
+    PRICE += ORDER[1] * 40
+    PRICE += ORDER[2] * 50
+    update_oled()
+    PRICE = 0
+
+
+def update_oled():
+    global PRICE
+    msg = str(PRICE)
+    print("Price", msg)
+    customer_oled(0)
+    customer_oled.text(msg, 0, 20)
+    customer_oled.show()
 
 
 def isChef(mac):
@@ -119,3 +150,5 @@ button_a = Button(pin=Pin(BUTTON_A_PIN, mode=Pin.IN,
                           pull=Pin.PULL_UP), callback=button_a_callback)
 button_b = Button(pin=Pin(BUTTON_B_PIN, mode=Pin.IN,
                           pull=Pin.PULL_UP), callback=button_b_callback)
+button_c = Button(pin=Pin(BUTTON_C_PIN, mode=Pin.IN,
+                          pull=Pin.PULL_UP), callback=button_c_callback)
