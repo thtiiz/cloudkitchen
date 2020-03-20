@@ -6,7 +6,7 @@ import network
 from esp import espnow
 import json
 # from adafruit_debouncer import Debouncer
-led=Pin(16,Pin.OUT)
+led = Pin(16, Pin.OUT)
 BUTTON_A_PIN = const(17)
 BUTTON_B_PIN = const(5)
 is_served = True
@@ -18,6 +18,7 @@ w.active(True)
 BROADCAST = b'\xFF'*6
 espnow.init()
 espnow.add_peer(BROADCAST)
+
 
 class Button:
     """
@@ -54,30 +55,26 @@ def ledIsOn():
         led.value(1)
     elif(is_served):
         led.value(0)
-        
 
 
 def button_a_callback(pin):
     print('order1')
-    order={}
+    order = {}
     order['table_num'] = 1
     order['chef_num'] = 1
     msg = json.dumps(order)
     espnow.send(BROADCAST, msg)
     ledIsOn()
-    
+
 
 def button_b_callback(pin):
     print('order2')
-    order={}
+    order = {}
     order['table_num'] = 1
     order['chef_num'] = 2
     msg = json.dumps(order)
     espnow.send(BROADCAST, msg)
     ledIsOn()
-   
-
-
 
 
 button_a = Button(pin=Pin(BUTTON_A_PIN, mode=Pin.IN,

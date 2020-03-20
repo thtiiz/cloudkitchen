@@ -5,6 +5,14 @@ from ssd1306 import SSD1306_I2C
 import network
 from esp import espnow
 
+<<<<<<< HEAD
+=======
+def receive_callback(*dobj):
+    mac, msg = dobj[0]
+    print("Received:", msg)
+    print("From:", ":".join(["{:02X}".format(x) for x in mac]))
+
+>>>>>>> fec63c76fed48ef48f486d67afa918713f07445d
 def connect_wifi():
     ssid = 'porporpor'
     passwd = 'roproprop'
@@ -37,6 +45,8 @@ def connect_wifi():
 
 
 connect_wifi()
+espnow.init()
+espnow.on_recv(receive_callback)
 
 BROADCAST = b'\xFF' * 6
 
