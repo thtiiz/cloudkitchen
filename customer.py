@@ -4,11 +4,15 @@ import network
 from esp import espnow
 import json
 
+# init PIN
 led = Pin(16, Pin.OUT)
 BUTTON_A_PIN = const(17)
 BUTTON_B_PIN = const(5)
 is_served = True
+TABLE_NUM = 1
+COUNT = 0
 
+# init WIFI
 w = network.WLAN()
 w.active(True)
 
@@ -18,15 +22,6 @@ espnow.init()
 espnow.add_peer(BROADCAST)
 
 # espnow-rx
-
-
-def receive_callback(*dobj):
-    mac, msg = dobj[0]
-    print("Received:", msg)
-    print("From:", ":".join(["{:02X}".format(x) for x in mac]))
-
-
-espnow.on_recv(receive_callback)
 
 
 class Button:
@@ -58,9 +53,9 @@ class Button:
         #    print("debounce: %s" % (self._next_call - time.ticks_ms()))
 
 
-def send_order():
-    is_served = False
-    if(~is_served):
+def toggleLED():
+    print(is_served)
+    if(is_served == False):
         led.value(1)
     elif(is_served):
         led.value(0)
@@ -74,7 +69,11 @@ def button_a_callback(pin):
     msg = json.dumps(order)
     print("Sending:", msg)
     espnow.send(BROADCAST, msg)
-    send_order()
+    global is_served
+    is_served = False
+    global COUNT
+    COUNT += 1
+    toggleLED()
 
 
 def button_b_callback(pin):
@@ -85,11 +84,37 @@ def button_b_callback(pin):
     msg = json.dumps(order)
     print("Sending:", msg)
     espnow.send(BROADCAST, msg)
-    send_order()
+    global is_served
+    is_served = False
+    global COUNT
+    COUNT += 1
+    toggleLED()
 
 
-# button_a = Button(pin=Pin(BUTTON_A_PIN, mode=Pin.IN, pull=Pin.PULL_UP), callback=button_a_callback)
-# button_b = Button(pin=Pin(BUTTON_B_PIN, mode=Pin.IN, pull=Pin.PULL_UP), callback=button_b_callback)
+def isChef(mac):
+    castmac = "".join(["{:02X}".format(x) for x in mac])
+    return castmac in ['30AEA41264E0']
+
+
+def receive_callback(*dobj):
+    mac, order_served = dobj[0]
+    order = json.loads(order_served)
+
+    print(json.loads(order_served))
+    if(not isChef(mac)):
+        print('is not a chef')
+        return None
+    elif(TABLE_NUM == order['table_num']):
+        global is_served
+        global COUNT
+        COUNT -= 1
+        if(COUNT == 0):
+            is_served = True
+            toggleLED()
+
+
+espnow.on_recv(receive_callback)
+
 button_a = Button(pin=Pin(BUTTON_A_PIN, mode=Pin.IN,
                           pull=Pin.PULL_UP), callback=button_a_callback)
 button_b = Button(pin=Pin(BUTTON_B_PIN, mode=Pin.IN,
