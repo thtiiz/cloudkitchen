@@ -19,7 +19,9 @@ PRICE = 0
 ORDER = {}
 ORDER[1] = 0
 ORDER[2] = 0
-
+PRICE_1 = 40
+PRICE_2 = 50
+# STATE = ''
 # init WIFI
 w = network.WLAN()
 w.active(True)
@@ -61,12 +63,30 @@ class Button:
         #    print("debounce: %s" % (self._next_call - time.ticks_ms()))
 
 
+def init_display():
+    customer_oled.fill(0)
+    msg_table = f'Table {TABLE_NUM}'
+    customer_oled.text(msg_table, 0, 0)
+    customer_oled.show()
+
+
+def update_cooking():
+    customer_oled.fill(0)
+    msg_table = f'Table {TABLE_NUM}'
+    customer_oled.text(msg_table, 0, 0)
+    customer_oled.show()
+    msg = 'Cooking . . .'
+    customer_oled.text(msg, 0, 30)
+    customer_oled.show()
+
+
 def toggleLED():
     print(is_served)
     if(is_served == False):
         led.value(1)
     elif(is_served):
         led.value(0)
+    update_cooking()
 
 
 def button_a_callback(pin):
@@ -106,19 +126,44 @@ def button_b_callback(pin):
 
 
 def button_c_callback(pin):
-    global PRICE
-    PRICE += ORDER[1] * 40
-    PRICE += ORDER[2] * 50
-    update_oled()
-    PRICE = 0
+    if(COUNT == 0):
+        global PRICE
+        global ORDER
+        PRICE += ORDER[1] * PRICE_1
+        PRICE += ORDER[2] * PRICE_2
+        update_oled()
+        PRICE = 0
+        ORDER[1] = 0
+        ORDER[2] = 0
 
 
 def update_oled():
     global PRICE
-    msg = str(PRICE)
+    msg_1 = ""
+    msg_1_1 = ""
+    msg_2 = ""
+    msg_2_1 = ""
+    y = 0
+    customer_oled.fill(0)
+    if(ORDER[1] > 0):
+        msg_1 = 'Chef 1: ' + \
+            str(ORDER[1]) + ' orders'
+        msg_1_1 = 'price: ' + \
+            str(ORDER[1] * PRICE_1) + ' Baht'
+        customer_oled.text(msg_1, 0, 0)
+        customer_oled.text(msg_1_1, 0, 12)
+        y += 24
+    if(ORDER[2] > 0):
+        msg_2 = 'Chef 2: ' + \
+            str(ORDER[2]) + ' orders'
+        msg_2_1 = 'price: ' + \
+            str(ORDER[2] * PRICE_2) + ' Baht'
+        customer_oled.text(msg_2, 0, y)
+        customer_oled.text(msg_2_1, 0, y+12)
+        y += 24
+    msg = 'Total: ' + str(PRICE)
     print("Price", msg)
-    customer_oled(0)
-    customer_oled.text(msg, 0, 20)
+    customer_oled.text(msg, 0, y)
     customer_oled.show()
 
 
@@ -152,3 +197,4 @@ button_b = Button(pin=Pin(BUTTON_B_PIN, mode=Pin.IN,
                           pull=Pin.PULL_UP), callback=button_b_callback)
 button_c = Button(pin=Pin(BUTTON_C_PIN, mode=Pin.IN,
                           pull=Pin.PULL_UP), callback=button_c_callback)
+init_display()
