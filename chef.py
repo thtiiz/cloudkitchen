@@ -1,7 +1,7 @@
 import time
 import network
 from esp import espnow
-from machine import Pin, I2C, Timer
+from machine import Pin, I2C, Timer, PWM
 from ssd1306 import SSD1306_I2C
 import json
 
@@ -66,6 +66,14 @@ def serve_from_chef2(timer):
     handleQueue(2)
     send_serve_msg(2, table_num)
 
+def refill_food_chef1(timer):
+    update_oled(1)
+    Chefs[1]['food_remain'] = 10
+
+def refill_food_chef2(timer):
+    update_oled(2)
+    Chefs[2]['food_remain'] = 10
+
 def send_serve_msg(chef_num, table_num):
     msg = {'table_num': table_num, 'chef_num': chef_num}
     espnow.send(BROADCAST, json.dumps(msg))
@@ -97,14 +105,28 @@ def onOrder(*order):
 
     if(Chefs[chef_num]['food_remain'] > 0):
         Chefs[chef_num]['food_remain'] -= 1 # ลดอาหาร
+        
+        # refill food
+        if(Chefs[chef_num]['food_remain'] == 0): 
+            if(chef_num == 1):
+                tim = Timer(3)
+                tim.init(period=2000, mode=Timer.ONE_SHOT, callback=refill_food_chef1)
+            else:
+                tim = Timer(3)
+                tim.init(period=2000, mode=Timer.ONE_SHOT, callback=refill_food_chef2)
+
         Chefs[chef_num]['queue'].append(table_num) # เพ่ิ่มเข้า queue
         update_oled(chef_num)
         if(Chefs[chef_num]['current_queue'] == 0): # ถ้าเชฟว่างก็ให้ทำอาหาร
             handleQueue(chef_num)
     else:
-        pass
+        if(chef_num == 1):
+            tim = Timer(3)
+            tim.init(period=2000, mode=Timer.ONE_SHOT, callback=refill_food_chef1)
+        else:
+            tim = Timer(3)
+            tim.init(period=2000, mode=Timer.ONE_SHOT, callback=refill_food_chef2)
     
-
 if(__name__ == "__main__"):
     update_oled(1)
     update_oled(2)
