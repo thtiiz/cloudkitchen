@@ -5,21 +5,13 @@ from machine import Pin, I2C, Timer
 from ssd1306 import SSD1306_I2C
 import json
 
+BROADCAST = b'\xFF' * 6
+
 i2c_1 = I2C(scl=Pin(22),sda=Pin(21),freq=100000)
 chef1_oled = SSD1306_I2C(128,64,i2c_1)
 
 i2c_2 = I2C(scl=Pin(17),sda=Pin(16),freq=100000)
 chef2_oled = SSD1306_I2C(128,64,i2c_2)
-
-class Chef:
-    def __init__(self):
-        # self.led = led
-        self.food_remain = 10
-        self.queue = []
-        # timer.callback(self.cb)
-    def cb(self, tim):
-        print('Serve!!!!')
-        # self.led.toggle()
 
 Chefs = [
     {},
@@ -40,12 +32,10 @@ def isCustomer(mac):
     return castmac in ['4C11AE793A28', 'A4CF128FD130', 'A4CF128FB8AC']
 
 def init_chef():
-
     chef1_oled.fill(0)
     chef1_oled.text('Chef1: Hello!!',0,0)
     chef1_oled.show()
 
-    
     chef2_oled.fill(0)
     chef2_oled.text('Chef2: Hello!!',0,0)
     chef2_oled.show()
@@ -54,10 +44,10 @@ def init_wifi():
     w = network.WLAN()
     w.active(True)
     espnow.init()
+    espnow.add_peer(BROADCAST)
 
 def update_oled(chef_num):
-    msg =  ",".join(Chefs[chef_num]['queue'])
-    print("chef queue(table):", msg)
+    msg =  ",".join([str(q) for q in Chefs[chef_num]['queue']])
     if(chef_num == 1):
         chef1_oled.fill(0)
         chef1_oled.text(msg,0,20)
@@ -68,16 +58,38 @@ def update_oled(chef_num):
         chef2_oled.show()
 
 def serve_from_chef1(timer):
-    Chefs[1]['queue'].pop(0)
+    table_num = Chefs[1]['queue'].pop(0)
+    Chefs[1]['current_queue'] -= 1
     update_oled(1)
+    handleQueue(1)
+    send_serve_msg(1, table_num)
 
 def serve_from_chef2(timer):
-    Chefs[2]['queue'].pop(0)
+    table_num = Chefs[2]['queue'].pop(0)
+    Chefs[2]['current_queue'] -= 1
     update_oled(2)
+    handleQueue(2)
+    send_serve_msg(2, table_num)
+
+def send_serve_msg(chef_num, table_num):
+    msg = {'table_num': table_num, 'chef_num': chef_num}
+    espnow.send(BROADCAST, json.dumps(msg))
+
+def handleQueue(chef_num):
+    print('handle', chef_num)
+    if(len(Chefs[chef_num]['queue']) > 0 ):
+        Chefs[chef_num]['current_queue'] += 1
+        if(chef_num == 1):
+            print('do 1')
+            tim = Timer(1)
+            tim.init(period=4000, mode=Timer.ONE_SHOT, callback=serve_from_chef1)
+        else:
+            print('do 2')
+            tim = Timer(2)
+            tim.init(period=4000, mode=Timer.ONE_SHOT, callback=serve_from_chef2)
     
 def onOrder(*order):
     mac, order_detail = order[0]
-
     # table_num: หมายเลขโต๊ะ
     # chef_num: หมายเลขเชฟ
     if(not isCustomer(mac)):
@@ -89,26 +101,18 @@ def onOrder(*order):
     table_num = detail['table_num']
 
     if(Chefs[chef_num]['food_remain'] > 0):
-        Chefs[chef_num]['food_remain'] -= 1
-        Chefs[chef_num]['queue'].append(str(table_num))
-        Chefs[chef_num]['current_queue'] += 1
-        if(chef_num == 1):
-            update_oled(1)
-            tim = Timer(Chefs[1]['current_queue'])
-            tim.init(period=2500, mode=Timer.ONE_SHOT, callback=serve_from_chef1)
-        else:
-            update_oled(2)
-            tim = Timer(200 + Chefs[2]['current_queue'])
-            tim.init(period=2500, mode=Timer.ONE_SHOT, callback=serve_from_chef2)
+        Chefs[chef_num]['food_remain'] -= 1 # ลดอาหาร
+        Chefs[chef_num]['queue'].append(table_num) # เพ่ิ่มเข้า queue
+        update_oled(chef_num)
+        if(Chefs[chef_num]['current_queue'] == 0): # ถ้าเชฟว่างก็ให้ทำอาหาร
+            handleQueue(chef_num)
     else:
         pass
     
 
-init_chef()
-init_wifi()
-espnow.on_recv(onOrder)
-
-while(1):
-    # print(Chefs[1])
-    # time.sleep(1)
-    pass
+if(__name__ == "__main__"):
+    init_chef()
+    init_wifi()
+    espnow.on_recv(onOrder)
+    while(1):
+        pass
