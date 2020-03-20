@@ -5,6 +5,9 @@ from machine import Pin, I2C, Timer, PWM
 from ssd1306 import SSD1306_I2C
 import json
 
+TIME_REFILL = 2000
+TIME_COOKING = 2000
+
 BROADCAST = b'\xFF' * 6
 
 i2c_1 = I2C(scl=Pin(22),sda=Pin(21),freq=100000)
@@ -16,12 +19,12 @@ chef2_oled = SSD1306_I2C(128,64,i2c_2)
 Chefs = [
     {},
     {
-        'food_remain': 10,
+        'food_remain': 5,
         'queue': [],
         'current_queue': 0
     },
     {
-        'food_remain': 15,
+        'food_remain': 4,
         'queue': [],
         'current_queue': 0
     }
@@ -68,11 +71,11 @@ def serve_from_chef2(timer):
 
 def refill_food_chef1(timer):
     update_oled(1)
-    Chefs[1]['food_remain'] = 10
+    Chefs[1]['food_remain'] = 5
 
 def refill_food_chef2(timer):
     update_oled(2)
-    Chefs[2]['food_remain'] = 10
+    Chefs[2]['food_remain'] = 4
 
 def send_serve_msg(chef_num, table_num):
     msg = {'table_num': table_num, 'chef_num': chef_num}
@@ -85,11 +88,11 @@ def handleQueue(chef_num):
         if(chef_num == 1):
             print('do 1')
             tim = Timer(1)
-            tim.init(period=4000, mode=Timer.ONE_SHOT, callback=serve_from_chef1)
+            tim.init(period=TIME_COOKING, mode=Timer.ONE_SHOT, callback=serve_from_chef1)
         else:
             print('do 2')
             tim = Timer(2)
-            tim.init(period=4000, mode=Timer.ONE_SHOT, callback=serve_from_chef2)
+            tim.init(period=TIME_COOKING, mode=Timer.ONE_SHOT, callback=serve_from_chef2)
     
 def onOrder(*order):
     mac, order_detail = order[0]
@@ -110,22 +113,17 @@ def onOrder(*order):
         if(Chefs[chef_num]['food_remain'] == 0): 
             if(chef_num == 1):
                 tim = Timer(3)
-                tim.init(period=2000, mode=Timer.ONE_SHOT, callback=refill_food_chef1)
+                tim.init(period=TIME_REFILL, mode=Timer.ONE_SHOT, callback=refill_food_chef1)
             else:
                 tim = Timer(3)
-                tim.init(period=2000, mode=Timer.ONE_SHOT, callback=refill_food_chef2)
+                tim.init(period=TIME_REFILL, mode=Timer.ONE_SHOT, callback=refill_food_chef2)
 
         Chefs[chef_num]['queue'].append(table_num) # เพ่ิ่มเข้า queue
         update_oled(chef_num)
         if(Chefs[chef_num]['current_queue'] == 0): # ถ้าเชฟว่างก็ให้ทำอาหาร
             handleQueue(chef_num)
     else:
-        if(chef_num == 1):
-            tim = Timer(3)
-            tim.init(period=2000, mode=Timer.ONE_SHOT, callback=refill_food_chef1)
-        else:
-            tim = Timer(3)
-            tim.init(period=2000, mode=Timer.ONE_SHOT, callback=refill_food_chef2)
+        pass
     
 if(__name__ == "__main__"):
     update_oled(1)
