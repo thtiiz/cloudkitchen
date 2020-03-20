@@ -13,8 +13,6 @@ BROADCAST = b'\xFF' * 6
 i2c_1 = I2C(scl=Pin(22),sda=Pin(21),freq=100000)
 chef1_oled = SSD1306_I2C(128,64,i2c_1)
 
-i2c_2 = I2C(scl=Pin(17),sda=Pin(16),freq=100000)
-chef2_oled = SSD1306_I2C(128,64,i2c_2)
 
 Chefs = [
     {},
@@ -32,6 +30,7 @@ Chefs = [
     }
 ]
 
+
 def isCustomer(mac):
     castmac = "".join(["{:02X}".format(x) for x in mac])
     return castmac in ['4C11AE793A28', 'A4CF128FD130', 'A4CF128FB8AC']
@@ -41,6 +40,7 @@ def init_wifi():
     w.active(True)
     espnow.init()
     espnow.add_peer(BROADCAST)
+
 
 def update_oled(chef_num):
     msg =  ",".join([str(q) for q in Chefs[chef_num]['queue'] + Chefs[chef_num]['out_order_queue']])
@@ -57,6 +57,7 @@ def update_oled(chef_num):
         chef2_oled.text('queue: {}'.format(msg),0,40)
         chef2_oled.show()
 
+
 def serve_from_chef1(timer):
     global Chefs
     table_num = Chefs[1]['queue'].pop(0)
@@ -64,6 +65,7 @@ def serve_from_chef1(timer):
     update_oled(1)
     handleQueue(1)
     send_serve_msg(1, table_num)
+
 
 def serve_from_chef2(timer):
     global Chefs
@@ -109,7 +111,7 @@ def onOrder(*order):
     if(not isCustomer(mac)):
         print('is not customer')
         return None
-    
+
     detail = json.loads(order_detail)
     chef_num = detail['chef_num']
     table_num = detail['table_num']
