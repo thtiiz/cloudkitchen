@@ -5,18 +5,6 @@ from ssd1306 import SSD1306_I2C
 import network
 from esp import espnow
 
-w = network.WLAN()
-w.active(True)
-espnow.init()
-
-def receive_callback(*dobj):
-    mac, msg = dobj
-    print("Received:", msg)
-    print("From:", ":".join(["{:02X}".format(x) for x in mac]))
-
-espnow.on_recv(receive_callback)
-
-
 def connect_wifi():
     ssid = 'porporpor'
     passwd = 'roproprop'
@@ -50,11 +38,15 @@ def connect_wifi():
 
 connect_wifi()
 
-i2c = I2C(scl=Pin(22),sda=Pin(21),freq=100000)
-oled = SSD1306_I2C(128,64,i2c)
-oled.fill(0)
-oled.text("ESP32 started...",0,0)
-oled.show()
+BROADCAST = b'\xFF' * 6
 
-while(1):
-    pass
+espnow.init()
+espnow.add_peer(BROADCAST)
+
+count = 0
+while True:
+    count += 1
+    msg = "Count = {}".format(count)
+    print("Sending:", msg)
+    espnow.send(BROADCAST, msg)
+    time.sleep(3)
