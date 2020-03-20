@@ -31,15 +31,6 @@ def isCustomer(mac):
     castmac = "".join(["{:02X}".format(x) for x in mac])
     return castmac in ['4C11AE793A28', 'A4CF128FD130', 'A4CF128FB8AC']
 
-def init_chef():
-    chef1_oled.fill(0)
-    chef1_oled.text('Chef1: Hello!!',0,0)
-    chef1_oled.show()
-
-    chef2_oled.fill(0)
-    chef2_oled.text('Chef2: Hello!!',0,0)
-    chef2_oled.show()
-
 def init_wifi():
     w = network.WLAN()
     w.active(True)
@@ -50,11 +41,15 @@ def update_oled(chef_num):
     msg =  ",".join([str(q) for q in Chefs[chef_num]['queue']])
     if(chef_num == 1):
         chef1_oled.fill(0)
-        chef1_oled.text(msg,0,20)
+        chef1_oled.text('Chef 1: Hello!!',0,0)
+        chef1_oled.text('food remain: {}'.format(Chefs[1]['food_remain']),0,20)
+        chef1_oled.text('queue: {}'.format(msg),0,40)
         chef1_oled.show()
     else:
         chef2_oled.fill(0)
-        chef2_oled.text(msg,0,20)
+        chef2_oled.text('Chef 2: Hello!!',0,0)
+        chef2_oled.text('food remain: {}'.format(Chefs[2]['food_remain']),0,20)
+        chef2_oled.text('queue: {}'.format(msg),0,40)
         chef2_oled.show()
 
 def serve_from_chef1(timer):
@@ -76,7 +71,7 @@ def send_serve_msg(chef_num, table_num):
     espnow.send(BROADCAST, json.dumps(msg))
 
 def handleQueue(chef_num):
-    print('handle', chef_num)
+    # print('handle', chef_num)
     if(len(Chefs[chef_num]['queue']) > 0 ):
         Chefs[chef_num]['current_queue'] += 1
         if(chef_num == 1):
@@ -111,7 +106,8 @@ def onOrder(*order):
     
 
 if(__name__ == "__main__"):
-    init_chef()
+    update_oled(1)
+    update_oled(2)
     init_wifi()
     espnow.on_recv(onOrder)
     while(1):
