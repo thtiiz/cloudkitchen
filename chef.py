@@ -14,6 +14,9 @@ i2c_1 = I2C(scl=Pin(22),sda=Pin(21),freq=100000)
 chef1_oled = SSD1306_I2C(128,64,i2c_1)
 
 
+i2c_2 = I2C(scl=Pin(17),sda=Pin(16),freq=100000)
+chef2_oled = SSD1306_I2C(128,64,i2c_2)
+
 Chefs = [
     {},
     {
