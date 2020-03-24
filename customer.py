@@ -1,12 +1,15 @@
-from machine import Pin, I2C
+from machine import Pin, I2C, ADC
 import time
 import network
 from esp import espnow
 from ssd1306 import SSD1306_I2C
 import json
+import _thread
 import math
-
 # init PIN
+sensor_temp = ADC(Pin(34))
+sensor_temp.atten(ADC.ATTN_11DB)
+
 led = Pin(16, Pin.OUT)
 BUTTON_A_PIN = const(17)
 BUTTON_B_PIN = const(5)
@@ -60,14 +63,16 @@ class Button:
         if time.ticks_ms() > self._next_call:
             self._next_call = time.ticks_ms() + self.min_ago
             self.call_callback(pin)
-        # else:
-        #    print("debounce: %s" % (self._next_call - time.ticks_ms()))
 
 
 def init_display():
     customer_oled.fill(0)
     msg_table = 'Table {}'.format(TABLE_NUM)
+    msg_price1 = 'chef 1 : {} Baht'.format(ORDER[1]*PRICE_1)
+    msg_price2 = 'chef 2 : {} Baht'.format(ORDER[2]*PRICE_2)
     customer_oled.text(msg_table, 0, 0)
+    customer_oled.text(msg_price1, 0, 12)
+    customer_oled.text(msg_price2, 0, 24)
     customer_oled.show()
 
 
@@ -76,8 +81,13 @@ def update_cooking():
     msg_table = 'Table {}'.format(TABLE_NUM)
     customer_oled.text(msg_table, 0, 0)
     customer_oled.show()
-    msg = 'Cooking . . .'
-    customer_oled.text(msg, 0, 30)
+    msg = 'Cooking ...'
+    msg_price1 = 'chef 1 : {} Baht'.format(ORDER[1]*PRICE_1)
+    msg_price2 = 'chef 2 : {} Baht'.format(ORDER[2]*PRICE_2)
+    customer_oled.text(msg, 15, 0)
+    customer_oled.text(msg_table, 0, 0)
+    customer_oled.text(msg_price1, 0, 12)
+    customer_oled.text(msg_price2, 0, 24)
     customer_oled.show()
 
 
@@ -200,8 +210,28 @@ def receive_callback(*dobj):
             is_served = True
             toggleLED()
 
+def get_temp():
+    adc = sensor_temp.read()
+    R1 = 10000.0
+    vpa0 = (adc * 3.3)/4096.0
+    R2 = (R1 * 3.3)/vpa0 - R1
+    temp = 1.0 / 298.15 + (1.0 / 4050.0) * math.log(R2 / 10000.0)
+    return 1.0/temp - 273.0
+
+def update_temp(temp):
+    if(STATE == 'ORDER'):
+        customer_oled.text("%.2f" % (temp), 0, 40)
+
+def thread_sensor_temp():
+    while(1):
+        time.sleep(1)
+        temp = get_temp()
+        update_temp(temp)
+        print(temp)
 
 espnow.on_recv(receive_callback)
+
+_thread.start_new_thread(thread_sensor_temp, ())
 
 button_a = Button(pin=Pin(BUTTON_A_PIN, mode=Pin.IN, pull=Pin.PULL_UP), callback=button_a_callback)
 button_b = Button(pin=Pin(BUTTON_B_PIN, mode=Pin.IN, pull=Pin.PULL_UP), callback=button_b_callback)
