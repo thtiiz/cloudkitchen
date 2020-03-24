@@ -1,11 +1,12 @@
 import time
 import network
 from esp import espnow
-from machine import Pin, I2C, Timer, PWM
+from machine import Pin, I2C, Timer, PWM, ADC
 from ssd1306 import SSD1306_I2C
 import json
 import _thread
 
+sensor_temp = ADC(Pin(13))
 TIME_REFILL = 2000
 TIME_COOKING = 2000
 
@@ -67,8 +68,8 @@ def serve_from_chef1(timer):
     table_num = Chefs[1]['queue'].pop(0)
     Chefs[1]['current_queue'] -= 1
     update_oled(1)
-    _thread.start_new_thread(handleQueue, tuple('1'))
     # handleQueue(1)
+    _thread.start_new_thread(handleQueue, tuple('1'))
     send_serve_msg(1, table_num)
 
 
@@ -144,11 +145,17 @@ def onOrder(*order):
         # pass
     update_oled(chef_num)
     # _thread.start_new_thread(update_oled, (chef_num))
-    
+
+def thread_sensor_temp():
+    while(1):
+        time.sleep(1)
+        print(sensor_temp)
+
 if(__name__ == "__main__"):
     update_oled(1)
     update_oled(2)
     init_wifi()
     espnow.on_recv(onOrder)
+    _thread.start_new_thread(thread_sensor_temp, ())
     while(1):
         pass

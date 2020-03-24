@@ -59,14 +59,16 @@ class Button:
         if time.ticks_ms() > self._next_call:
             self._next_call = time.ticks_ms() + self.min_ago
             self.call_callback(pin)
-        # else:
-        #    print("debounce: %s" % (self._next_call - time.ticks_ms()))
 
 
 def init_display():
     customer_oled.fill(0)
     msg_table = 'Table {}'.format(TABLE_NUM)
+    msg_price1 = 'chef 1 : {} Baht'.format(ORDER[1]*PRICE_1)
+    msg_price2 = 'chef 2 : {} Baht'.format(ORDER[2]*PRICE_2)
     customer_oled.text(msg_table, 0, 0)
+    customer_oled.text(msg_price1, 0, 12)
+    customer_oled.text(msg_price2, 0, 24)
     customer_oled.show()
 
 
@@ -75,8 +77,13 @@ def update_cooking():
     msg_table = 'Table {}'.format(TABLE_NUM)
     customer_oled.text(msg_table, 0, 0)
     customer_oled.show()
-    msg = 'Cooking . . .'
-    customer_oled.text(msg, 0, 30)
+    msg = 'Cooking ...'
+    msg_price1 = 'chef 1 : {} Baht'.format(ORDER[1]*PRICE_1)
+    msg_price2 = 'chef 2 : {} Baht'.format(ORDER[2]*PRICE_2)
+    customer_oled.text(msg, 15, 0)
+    customer_oled.text(msg_table, 0, 0)
+    customer_oled.text(msg_price1, 0, 12)
+    customer_oled.text(msg_price2, 0, 24)
     customer_oled.show()
 
 
@@ -205,4 +212,3 @@ espnow.on_recv(receive_callback)
 button_a = Button(pin=Pin(BUTTON_A_PIN, mode=Pin.IN, pull=Pin.PULL_UP), callback=button_a_callback)
 button_b = Button(pin=Pin(BUTTON_B_PIN, mode=Pin.IN, pull=Pin.PULL_UP), callback=button_b_callback)
 button_c = Button(pin=Pin(BUTTON_C_PIN, mode=Pin.IN, pull=Pin.PULL_UP), callback=button_c_callback)
-init_display()
