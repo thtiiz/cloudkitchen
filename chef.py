@@ -4,6 +4,7 @@ from esp import espnow
 from machine import Pin, I2C, Timer, PWM
 from ssd1306 import SSD1306_I2C
 import json
+import _thread
 
 TIME_REFILL = 2000
 TIME_COOKING = 2000
@@ -66,7 +67,8 @@ def serve_from_chef1(timer):
     table_num = Chefs[1]['queue'].pop(0)
     Chefs[1]['current_queue'] -= 1
     update_oled(1)
-    handleQueue(1)
+    _thread.start_new_thread(handleQueue, tuple('1'))
+    # handleQueue(1)
     send_serve_msg(1, table_num)
 
 
@@ -75,7 +77,8 @@ def serve_from_chef2(timer):
     table_num = Chefs[2]['queue'].pop(0)
     Chefs[2]['current_queue'] -= 1
     update_oled(2)
-    handleQueue(2)
+    # handleQueue(2)
+    _thread.start_new_thread(handleQueue, tuple('2'))
     send_serve_msg(2, table_num)
 
 def refill_food_chef1(timer):
@@ -94,8 +97,9 @@ def send_serve_msg(chef_num, table_num):
     msg = {'table_num': table_num, 'chef_num': chef_num}
     espnow.send(BROADCAST, json.dumps(msg))
 
-def handleQueue(chef_num):
+def handleQueue(num):
     # print('handle', chef_num)
+    chef_num = int(num)
     if(len(Chefs[chef_num]['queue']) > 0 ):
         Chefs[chef_num]['current_queue'] += 1
         if(chef_num == 1):
@@ -132,12 +136,14 @@ def onOrder(*order):
                 tim = Timer(3)
                 tim.init(period=TIME_REFILL, mode=Timer.ONE_SHOT, callback=refill_food_chef2)
         if(Chefs[chef_num]['current_queue'] == 0): # ถ้าเชฟว่างก็ให้ทำอาหาร
-            handleQueue(chef_num)
+            # handleQueue(chef_num)
+            _thread.start_new_thread(handleQueue, tuple(str(chef_num)))
     else:
         Chefs[chef_num]['out_order_queue'].append(table_num)
         print('out of order')
         # pass
     update_oled(chef_num)
+    # _thread.start_new_thread(update_oled, (chef_num))
     
 if(__name__ == "__main__"):
     update_oled(1)

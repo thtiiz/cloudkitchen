@@ -202,10 +202,7 @@ def receive_callback(*dobj):
 
 espnow.on_recv(receive_callback)
 
-button_a = Button(pin=Pin(BUTTON_A_PIN, mode=Pin.IN,
-                          pull=Pin.PULL_UP), callback=button_a_callback)
-button_b = Button(pin=Pin(BUTTON_B_PIN, mode=Pin.IN,
-                          pull=Pin.PULL_UP), callback=button_b_callback)
-button_c = Button(pin=Pin(BUTTON_C_PIN, mode=Pin.IN,
-                          pull=Pin.PULL_UP), callback=button_c_callback)
+button_a = Button(pin=Pin(BUTTON_A_PIN, mode=Pin.IN, pull=Pin.PULL_UP), callback=button_a_callback)
+button_b = Button(pin=Pin(BUTTON_B_PIN, mode=Pin.IN, pull=Pin.PULL_UP), callback=button_b_callback)
+button_c = Button(pin=Pin(BUTTON_C_PIN, mode=Pin.IN, pull=Pin.PULL_UP), callback=button_c_callback)
 init_display()
