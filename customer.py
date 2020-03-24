@@ -4,6 +4,7 @@ import network
 from esp import espnow
 from ssd1306 import SSD1306_I2C
 import json
+import math
 
 # init PIN
 led = Pin(16, Pin.OUT)
