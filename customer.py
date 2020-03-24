@@ -7,6 +7,8 @@ import json
 import _thread
 import math
 # init PIN
+TABLE_NUM = 2
+
 sensor_temp = ADC(Pin(34))
 sensor_temp.atten(ADC.ATTN_11DB)
 
@@ -17,7 +19,6 @@ BUTTON_C_PIN = const(12)
 i2c_1 = I2C(scl=Pin(22), sda=Pin(21), freq=100000)
 customer_oled = SSD1306_I2C(128, 64, i2c_1)
 is_served = True
-TABLE_NUM = 2
 COUNT = 0
 PRICE = 0
 ORDER = {}
@@ -37,6 +38,7 @@ espnow.add_peer(BROADCAST)
 
 # espnow-rx
 
+temp = 25.00
 
 class Button:
     """
@@ -66,6 +68,7 @@ class Button:
 
 
 def init_display():
+    global temp
     customer_oled.fill(0)
     msg_table = 'Table {}'.format(TABLE_NUM)
     msg_price1 = 'chef 1 : {} Baht'.format(ORDER[1]*PRICE_1)
@@ -73,33 +76,15 @@ def init_display():
     customer_oled.text(msg_table, 0, 0)
     customer_oled.text(msg_price1, 0, 12)
     customer_oled.text(msg_price2, 0, 24)
+    customer_oled.text("temp: %.2f" % (temp), 0, 36)
     customer_oled.show()
-
-
-def update_cooking():
-    customer_oled.fill(0)
-    msg_table = 'Table {}'.format(TABLE_NUM)
-    customer_oled.text(msg_table, 0, 0)
-    customer_oled.show()
-    msg = 'Cooking ...'
-    msg_price1 = 'chef 1 : {} Baht'.format(ORDER[1]*PRICE_1)
-    msg_price2 = 'chef 2 : {} Baht'.format(ORDER[2]*PRICE_2)
-    customer_oled.text(msg, 15, 0)
-    customer_oled.text(msg_table, 0, 0)
-    customer_oled.text(msg_price1, 0, 12)
-    customer_oled.text(msg_price2, 0, 24)
-    customer_oled.show()
-
 
 def toggleLED():
     print(is_served)
     if(is_served == False):
         led.value(1)
-        update_cooking()
     elif(is_served):
         led.value(0)
-        init_display()
-
 
 def button_a_callback(pin):
     global STATE
@@ -147,19 +132,19 @@ def button_c_callback(pin):
         if(COUNT == 0):
             global PRICE
             global ORDER
+            STATE = 'CHECKBILL'
             PRICE += ORDER[1] * PRICE_1
             PRICE += ORDER[2] * PRICE_2
-            update_oled()
+            update_bills_oled()
             PRICE = 0
             ORDER[1] = 0
             ORDER[2] = 0
-            STATE = 'SERVE'
-    elif(STATE == 'SERVE'):
+    elif(STATE == 'CHECKBILL'):
         init_display()
         STATE = 'ORDER'
 
 
-def update_oled():
+def update_bills_oled():
     global PRICE
     msg_1 = ""
     msg_1_1 = ""
@@ -220,13 +205,21 @@ def get_temp():
 
 def update_temp(temp):
     if(STATE == 'ORDER'):
-        customer_oled.text("%.2f" % (temp), 0, 40)
+        customer_oled.text(" " * 60, 0, 40)
+        customer_oled.show()
+        customer_oled.text("%.2f" % (temp), 0, 36)
+        customer_oled.show()
 
 def thread_sensor_temp():
+    global temp
+    global STATE
     while(1):
+        print(STATE)
         time.sleep(1)
         temp = get_temp()
-        update_temp(temp)
+        if(STATE == 'ORDER'):
+            init_display()
+        # update_temp(temp)
         print(temp)
 
 espnow.on_recv(receive_callback)
